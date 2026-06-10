@@ -269,113 +269,7 @@ export default function Home() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // Background Video Player ref
-  const bgPlayerRef = useRef(null);
 
-  // Load and control background video
-  useEffect(() => {
-    let checkInterval = null;
-    let apiPollInterval = null;
-
-    // Safe script load
-    if (typeof window !== "undefined" && !window.YT) {
-      const tag = document.createElement("script");
-      tag.src = "https://www.youtube.com/iframe_api";
-      const firstScriptTag = document.getElementsByTagName("script")[0];
-      if (firstScriptTag && firstScriptTag.parentNode) {
-        firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
-      } else {
-        document.head.appendChild(tag);
-      }
-    }
-
-    const initBgPlayer = () => {
-      const container = document.getElementById("hero-bg-video");
-      if (!container) {
-        // Retry shortly if DOM is not ready
-        setTimeout(initBgPlayer, 100);
-        return;
-      }
-
-      try {
-        if (bgPlayerRef.current && typeof bgPlayerRef.current.destroy === "function") {
-          bgPlayerRef.current.destroy();
-        }
-      } catch (e) {}
-
-      try {
-        bgPlayerRef.current = new window.YT.Player("hero-bg-video", {
-          videoId: "eCpAgLeMCb8",
-          playerVars: {
-            autoplay: 1,
-            mute: 1,
-            controls: 0,
-            rel: 0,
-            showinfo: 0,
-            iv_load_policy: 3,
-            playsinline: 1,
-            loop: 1,
-            playlist: "eCpAgLeMCb8",
-            end: 53,
-            start: 0,
-          },
-          events: {
-            onReady: (event) => {
-              event.target.mute();
-              event.target.playVideo();
-              
-              if (checkInterval) clearInterval(checkInterval);
-              checkInterval = setInterval(() => {
-                if (event.target && typeof event.target.getCurrentTime === "function") {
-                  const currentTime = event.target.getCurrentTime();
-                  if (currentTime >= 53) {
-                    event.target.seekTo(0, true);
-                    event.target.playVideo();
-                  }
-                }
-              }, 500);
-            },
-            onStateChange: (event) => {
-              if (event.data === window.YT.PlayerState.ENDED) {
-                event.target.seekTo(0, true);
-                event.target.playVideo();
-              }
-              if (event.data === window.YT.PlayerState.PAUSED) {
-                event.target.playVideo();
-              }
-            }
-          }
-        });
-      } catch (err) {
-        console.error("Eglanto background video init error:", err);
-      }
-    };
-
-    const pollForAPI = () => {
-      if (window.YT && window.YT.Player) {
-        initBgPlayer();
-      } else {
-        apiPollInterval = setTimeout(pollForAPI, 100);
-      }
-    };
-
-    pollForAPI();
-
-    // Register on window just in case
-    if (typeof window !== "undefined") {
-      window.onYouTubeIframeAPIReady = initBgPlayer;
-    }
-
-    return () => {
-      if (checkInterval) clearInterval(checkInterval);
-      if (apiPollInterval) clearTimeout(apiPollInterval);
-      try {
-        if (bgPlayerRef.current && typeof bgPlayerRef.current.destroy === "function") {
-          bgPlayerRef.current.destroy();
-        }
-      } catch (e) {}
-    };
-  }, []);
 
   // Navigation scroll function
   const navigateToSection = (tabName) => {
@@ -680,15 +574,31 @@ export default function Home() {
       </AnimatePresence>
 
       {/* 2. HERO LANDING SECTION */}
-      <section id="home" className="relative px-6 md:px-12 lg:px-20 py-8 lg:py-16 grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-16 items-center overflow-hidden min-h-[90vh]">
+      <section id="home" className="relative px-6 md:px-12 lg:px-20 py-8 lg:py-16 grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-16 items-center overflow-hidden min-h-[calc(100vh-90px)]">
         
         {/* Background YouTube Video */}
-        <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden bg-black select-none">
-          {/* Overlays to ensure text legibility and brand styling */}
-          <div className="absolute inset-0 bg-gradient-to-r from-[#FAF6F0] via-[#FAF6F0]/90 to-[#FAF6F0]/40 z-10" />
-          <div className="absolute inset-0 bg-[#FAF6F0]/40 backdrop-blur-[2px] z-10" />
+        <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden select-none">
+          {/* Overlays to block pointer events to iframe and ensure text legibility */}
+          <div className="absolute inset-0 bg-gradient-to-r from-[#FAF6F0]/60 via-[#FAF6F0]/15 to-transparent pointer-events-auto z-10" />
+          <div className="absolute inset-0 bg-transparent pointer-events-auto z-10" />
           
-          <div id="hero-bg-video" className="absolute w-[300%] h-[300%] -top-[100%] -left-[100%] sm:w-[150%] sm:h-[150%] sm:-top-[25%] sm:-left-[25%] lg:w-[120%] lg:h-[120%] lg:-top-[10%] lg:-left-[10%]" />
+          <iframe
+            id="hero-bg-video"
+            src="https://www.youtube.com/embed/ivzPXht4C5E?autoplay=1&mute=1&loop=1&playlist=ivzPXht4C5E&controls=0&modestbranding=1&rel=0&showinfo=0&iv_load_policy=3&disablekb=1&playsinline=1"
+            style={{
+              position: "absolute",
+              top: "50%",
+              left: "50%",
+              transform: "translate(-50%, -50%)",
+              width: "100vw",
+              height: "56.25vw",
+              minHeight: "100vh",
+              minWidth: "177.77vh",
+            }}
+            className="pointer-events-none z-0 border-none"
+            allow="autoplay; encrypted-media"
+            title="Eglanto Background Video"
+          />
         </div>
 
         {/* Left Text details */}
@@ -722,35 +632,7 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Right Images Layout */}
-        <div className="lg:col-span-6 relative flex items-center justify-center min-h-[380px] sm:min-h-[440px] z-10">
-          {/* Decorative Vector Line in background */}
-          <svg viewBox="0 0 100 100" className="absolute w-full h-full text-[#B38E6B]/15 pointer-events-none z-0">
-            <path d="M 10 50 Q 50 10 90 50 T 10 50" fill="none" stroke="currentColor" strokeWidth="1.5" strokeDasharray="3 3" />
-          </svg>
 
-          <div className="relative w-full max-w-[460px] aspect-[4/3] sm:aspect-square flex items-center justify-between z-10 gap-6">
-            
-            {/* Center-left rectangular image */}
-            <div className="w-[52%] aspect-[3/4] overflow-hidden shadow-xl border border-white/20">
-              <img 
-                src={catalogData[material].heroImage1} 
-                className="w-full h-full object-cover scale-[1.05]" 
-                alt={`${material} Collection 1`} 
-              />
-            </div>
-
-            {/* Right arched image */}
-            <div className="w-[42%] aspect-[3/4] rounded-t-full overflow-hidden shadow-xl border border-white/20">
-              <img 
-                src={catalogData[material].heroImage2} 
-                className="w-full h-full object-cover" 
-                alt={`${material} Collection 2`} 
-              />
-            </div>
-
-          </div>
-        </div>
 
       </section>
 
